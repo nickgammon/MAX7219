@@ -20,17 +20,15 @@ void setup ()
   display.sendString ("Lo Light");
   delay (2000);
   display.setIntensity (6);
-
-//  while (true ) {}
   }  // end of setup
 
 // scrolling display of all available characters
 void loop ()
   {
-  char buf [chips * 8 + 1];
+  char buf [(chips * 8) + 1];
   for (char i = '0'; i < 'z'; i++)
     {
-    for (byte j = 0; j < chips * 8; j++)
+    for (byte j = 0; j < (chips * 8); j++)
       buf [j] = i + j;
     buf [chips * 8] = 0;
     display.sendString (buf);

@@ -26,7 +26,12 @@
  tort or otherwise, arising from, out of or in connection with the software 
  or the use or other dealings in the software. 
  
- */
+*/
+
+#include <SPI.h>
+#include <bitBangedSPI.h>
+#include <MAX7219.h>
+#include <MAX7219_font.h>
 
 /*
 
@@ -80,10 +85,7 @@ Usage:
 
 */
 
-#include <SPI.h>
-#include <bitBangedSPI.h>
-#include <MAX7219.h>
-#include <MAX7219_font.h>
+
   
 // destructor
 MAX7219::~MAX7219 ()
