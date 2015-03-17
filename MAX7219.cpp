@@ -122,7 +122,7 @@ void MAX7219::end ()
   {
   sendToAll (MAX7219_REG_SHUTDOWN, 0);  // shutdown mode (ie. turn it off)
 
-  if (bbSPI_ == NULL)
+  if (bbSPI_ != NULL)
     {
     delete bbSPI_;
     bbSPI_ = NULL;
