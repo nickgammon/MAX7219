@@ -3,15 +3,15 @@
 class MAX7219
   {
   // pins
+  const byte chips_;
   const byte load_;
   const byte din_;
   const byte clock_;
   const bool bitBanged_;
   bitBangedSPI * bbSPI_;
 
-
   void sendByte (const byte reg, const byte data);
-
+  void sendToAll (const byte reg, const byte data);
 
   // registers
   enum { 
@@ -27,8 +27,12 @@ class MAX7219
 
   public:
     // constructor
-    MAX7219 (const byte load, const byte din = 0, const byte clock = 0, const byte bitBanged = false)
-       : load_ (load), din_ (din), clock_ (clock), bitBanged_ (bitBanged), bbSPI_ (NULL) { }
+    MAX7219 (const byte chips, 
+             const byte load, 
+             const byte din = 0, 
+             const byte clock = 0)
+       : chips_ (chips), load_ (load), din_ (din), clock_ (clock), 
+         bitBanged_ ((din | clock) != 0), bbSPI_ (NULL) { }
     
     ~MAX7219 ();  // destructor
     void begin ();

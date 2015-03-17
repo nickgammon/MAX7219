@@ -6,27 +6,35 @@
 #include <bitBangedSPI.h>
 #include <MAX7219.h>
 
-// bit banged SPI on pins 6, 7, 8
-MAX7219 display (6, 7, 8, true);  // LOAD, DIN, CLK
+const byte chips = 1;
+
+// 2 chips, bit banged SPI on pins 6, 7, 8
+MAX7219 display (chips, 6, 7, 8);  // Chips / LOAD / DIN / CLK
 
 void setup ()
   {
   display.begin ();
-  display.sendString ("HI THERE");
+  display.sendString ("HELLO   _-_-_-_-");
   delay (2000);
+  display.setIntensity (2);
+  display.sendString ("Lo Light");
+  delay (2000);
+  display.setIntensity (6);
+
+//  while (true ) {}
   }  // end of setup
 
 // scrolling display of all available characters
 void loop ()
   {
-  char buf [9];
+  char buf [chips * 8 + 1];
   for (char i = '0'; i < 'z'; i++)
     {
-    for (byte j = 0; j < 8; j++)
+    for (byte j = 0; j < chips * 8; j++)
       buf [j] = i + j;
-    buf [8] = 0;
+    buf [chips * 8] = 0;
     display.sendString (buf);
     delay (1000);
     }    // end of for loop
   }  // end of loop
-  
+

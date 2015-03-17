@@ -40,7 +40,7 @@ Wiring:
 
   Make an instance of the class:
 
-    MAX7219 myDisplay (10);  // specify the LOAD pin only
+    MAX7219 myDisplay (1, 10);  // 1 chip, and then specify the LOAD pin only
 
   Bit-banged SPI:
 
@@ -48,7 +48,7 @@ Wiring:
 
   Make an instance of the class:
 
-    MAX7219 myDisplay (6, 7, 8, true);  // specify the LOAD, DIN, CLK pins
+    MAX7219 myDisplay (2, 6, 7, 8);  // 2 chips, then specify the LOAD, DIN, CLK pins
 
 Usage:
 
@@ -108,17 +108,17 @@ void MAX7219::begin ()
     SPI.begin ();
     }  // end of hardware SPI
 
-  sendByte (MAX7219_REG_SCANLIMIT, 7);      // show 8 digits
-  sendByte (MAX7219_REG_DECODEMODE, 0);     // use bit patterns
-  sendByte (MAX7219_REG_DISPLAYTEST, 0);    // no display test
-  sendByte (MAX7219_REG_INTENSITY, 15);     // character intensity: range: 0 to 15
+  sendToAll (MAX7219_REG_SCANLIMIT, 7);     // show 8 digits
+  sendToAll (MAX7219_REG_DECODEMODE, 0);    // use bit patterns
+  sendToAll (MAX7219_REG_DISPLAYTEST, 0);   // no display test
+  sendToAll (MAX7219_REG_INTENSITY, 15);    // character intensity: range: 0 to 15
   sendString ("");                          // clear display
-  sendByte (MAX7219_REG_SHUTDOWN, 1);       // not in shutdown mode (ie. start it up)
+  sendToAll (MAX7219_REG_SHUTDOWN, 1);      // not in shutdown mode (ie. start it up)
   } // end of MAX7219::begin
 
 void MAX7219::end ()
   {
-  sendByte (MAX7219_REG_SHUTDOWN, 0);  // shutdown mode (ie. turn it off)
+  sendToAll (MAX7219_REG_SHUTDOWN, 0);  // shutdown mode (ie. turn it off)
 
   if (bbSPI_ == NULL)
     {
@@ -133,13 +133,12 @@ void MAX7219::end ()
 
 void MAX7219::setIntensity (const byte amount)
   {
-  sendByte (MAX7219_REG_INTENSITY, amount & 0xF);     // character intensity: range: 0 to 15
+  sendToAll (MAX7219_REG_INTENSITY, amount & 0xF);     // character intensity: range: 0 to 15
   } // end of MAX7219::setIntensity
 
 // send one byte to MAX7219
 void MAX7219::sendByte (const byte reg, const byte data)
   {    
-  digitalWrite (load_, LOW);
   if (bitBanged_)
     {
     if (bbSPI_ != NULL)
@@ -153,8 +152,15 @@ void MAX7219::sendByte (const byte reg, const byte data)
     SPI.transfer (reg);
     SPI.transfer (data);
     }
-  digitalWrite (load_, HIGH); 
   }  // end of sendByte
+
+void MAX7219::sendToAll (const byte reg, const byte data)
+  {    
+  digitalWrite (load_, LOW);
+  for (byte chip = 0; chip < chips_; chip++)
+    sendByte (reg, data);
+  digitalWrite (load_, HIGH); 
+  }  // end of sendToAll
 
 // send one character (data) to position (pos) with or without decimal place
 // pos is 0 to 7
@@ -162,13 +168,31 @@ void MAX7219::sendChar (const byte pos, const char data, const bool dp)
   {
   byte converted = 0b0000001;    // hyphen as default
 
+  // look up bit pattern if possible
   if (data >= ' ' && data <= 'z')
     converted = pgm_read_byte (&MAX7219_font [data - ' ']);
-
+  // 'or' in the decimal point if required
   if (dp)
     converted |= 0b10000000;
 
-  sendByte (8 - pos, converted);
+  // start sending
+  digitalWrite (load_, LOW);
+  
+  // segment is in range 1 to 8
+  const byte segment = 8 - (pos % 8);
+  // for each daisy-chained display we need an extra NOP
+  const byte nopCount = pos / 8;
+  // send extra NOPs to push the data out to extra displays
+  for (byte i = 0; i < nopCount; i++)
+    sendByte (MAX7219_REG_NOOP, MAX7219_REG_NOOP);
+  // send the segment number and data
+  sendByte (segment, converted);
+  // end with enough NOPs so later chips don't update
+  for (int i = 0; i < chips_ - nopCount - 1; i++)
+    sendByte (MAX7219_REG_NOOP, MAX7219_REG_NOOP);
+
+  // all done!
+  digitalWrite (load_, HIGH); 
   }  // end of sendChar
 
 // write an entire null-terminated string to the LEDs
@@ -176,7 +200,7 @@ void MAX7219::sendString (const char * s)
 {
   byte pos;
   
-  for (pos = 0; pos < 8 && *s; pos++)
+  for (pos = 0; pos < (chips_ * 8) && *s; pos++)
     {
     boolean dp = s [1] == '.';
     sendChar (pos, *s++, dp);   // turn decimal place on if next char is a dot
@@ -185,6 +209,8 @@ void MAX7219::sendString (const char * s)
     }
     
   // space out rest
-  while (pos < 8)
+  while (pos < (chips_ * 8))
     sendChar (pos++, ' ');
+
+
 }  // end of sendString
