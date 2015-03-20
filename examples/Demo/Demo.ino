@@ -8,7 +8,7 @@
 
 const byte chips = 1;
 
-// 2 chips, bit banged SPI on pins 6, 7, 8
+// 1 chip, bit banged SPI on pins 6, 7, 8
 MAX7219 display (chips, 6, 7, 8);  // Chips / LOAD / DIN / CLK
 
 void setup ()
